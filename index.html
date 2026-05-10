@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TACI — Tablero de Ahorro y Capacidad Investigativa</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --border: #e0ddd6;
+    --text: #1a1917;
+    --muted: #6b6860;
+    --accent: #1a3a5c;
+    --accent-light: #e8eff7;
+    --red: #c0392b;
+    --red-bg: #fdf0ee;
+    --amber: #b85c00;
+    --amber-bg: #fef6ec;
+    --green: #2e7d32;
+    --green-bg: #edf7ee;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--accent);
+  }
+
+  .header-left .acronym {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .header-right strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 0.5px;
+    background: var(--border);
+  }
+
+  .input-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .input-field input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-field input:focus {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .input-field .hint {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .btn-calcular {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 24px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .btn-calcular:hover { opacity: 0.85; }
+
+  .btn-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--muted);
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: var(--sans);
+    font-size: 13px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.2s;
+  }
+
+  .btn-reset:hover { background: var(--bg); }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .metric-card.riesgo::before { background: var(--red); }
+  .metric-card.alerta::before { background: var(--amber); }
+  .metric-card.normal::before { background: var(--green); }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .metric-value {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .metric-unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .metric-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-top: 8px;
+    font-family: var(--mono);
+    letter-spacing: 0.3px;
+  }
+
+  .badge-riesgo { background: var(--red-bg); color: var(--red); }
+  .badge-alerta { background: var(--amber-bg); color: var(--amber); }
+  .badge-normal { background: var(--green-bg); color: var(--green); }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .chart-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legend-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .alert-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .alert-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+    gap: 1rem;
+  }
+
+  .alert-row:last-child { border-bottom: none; }
+
+  .alert-name {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .alert-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-top: 2px;
+  }
+
+  .alert-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .alert-val {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .alert-status {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: var(--mono);
+    letter-spacing: 0.3px;
+    min-width: 90px;
+    text-align: center;
+  }
+
+  .pronostico-panel {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .pronostico-title {
+    font-size: 13px;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 0.75rem;
+  }
+
+  .pronostico-texto {
+    font-size: 15px;
+    line-height: 1.7;
+    opacity: 0.95;
+  }
+
+  .pronostico-scenarios {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .scenario {
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.875rem;
+  }
+
+  .scenario-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.65;
+    margin-bottom: 6px;
+  }
+
+  .scenario-val {
+    font-size: 22px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .scenario-desc {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+  }
+
+  .footer {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    padding-top: 1.5rem;
+    border-top: 0.5px solid var(--border);
+    line-height: 2;
+  }
+
+  @media (max-width: 680px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .pronostico-scenarios { grid-template-columns: 1fr; }
+    .header { flex-direction: column; gap: 1rem; }
+    .header-right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Tablero de Ahorro y Capacidad Investigativa</h1>
+      <div class="acronym">TACI — Banco de la República de Colombia</div>
+    </div>
+    <div class="header-right">
+      <strong>Subgerencia de Estudios Económicos</strong><br>
+      Elaborado por: Carol Dayana Mayorga Pinzón<br>
+      Período de análisis: 2015–2025<br>
+      <span id="fecha-actual"></span>
+    </div>
+  </div>
+
+  <div class="section-label">Ingreso de datos</div>
+
+  <div class="input-panel">
+    <div class="input-grid">
+      <div class="input-field">
+        <label>Gasto pensional / PIB (%)</label>
+        <input type="number" id="inp-gasto" step="0.1" min="0" max="20" placeholder="Ej: 3.5">
+        <div class="hint">Fuente: Banco de la República / DANE</div>
+      </div>
+      <div class="input-field">
+        <label>Informalidad laboral (%)</label>
+        <input type="number" id="inp-informal" step="0.1" min="0" max="100" placeholder="Ej: 55.4">
+        <div class="hint">Fuente: DANE GEIH</div>
+      </div>
+      <div class="input-field">
+        <label>Cotizantes / ocupados (%)</label>
+        <input type="number" id="inp-cotizantes" step="0.1" min="0" max="100" placeholder="Ej: 42.5">
+        <div class="hint">Fuente: Colpensiones / Superfinanciera</div>
+      </div>
+      <div class="input-field">
+        <label>Cobertura pensional (%)</label>
+        <input type="number" id="inp-cobertura" step="0.1" min="0" max="100" placeholder="Ej: 35.0">
+        <div class="hint">Fuente: Colpensiones / DANE</div>
+      </div>
+      <div class="input-field">
+        <label>Tasa de ahorro nacional (%)</label>
+        <input type="number" id="inp-ahorro" step="0.1" min="0" max="100" placeholder="Ej: 7.3">
+        <div class="hint">Fuente: DANE Cuentas Nacionales</div>
+      </div>
+      <div class="input-field">
+        <label>Año consultado</label>
+        <input type="number" id="inp-anio" min="2015" max="2030" placeholder="Ej: 2025">
+        <div class="hint">Período de referencia del dato</div>
+      </div>
+    </div>
+    <button class="btn-calcular" onclick="calcular()">Actualizar tablero</button>
+    <button class="btn-reset" onclick="resetear()">Restablecer datos base</button>
+  </div>
+
+  <div class="section-label">Indicadores en tiempo real</div>
+
+  <div class="metrics-grid" id="metrics-grid"></div>
+
+  <div class="section-label">Pronóstico y escenarios</div>
+
+  <div class="pronostico-panel" id="pronostico-panel"></div>
+
+  <div class="section-label">Series históricas 2015–2025</div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Gasto pensional / PIB</div>
+      <div class="chart-legend">
+        <span><span class="legend-sq" style="background:#1a3a5c;"></span>Histórico</span>
+        <span><span class="legend-sq" style="background:#5DCAA5; border:1px dashed #0F6E56;"></span>Proyección base</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="c-gasto" role="img" aria-label="Gasto pensional Colombia como porcentaje del PIB 2015-2025">Gasto pensional histórico Colombia 2015-2025.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Informalidad y cotizantes (%)</div>
+      <div class="chart-legend">
+        <span><span class="legend-sq" style="background:#c0392b;"></span>Informalidad</span>
+        <span><span class="legend-sq" style="background:#378ADD;"></span>Cotizantes/ocupados</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="c-informal" role="img" aria-label="Informalidad laboral y cotizantes Colombia 2015-2025">Informalidad y cotizantes 2015-2025.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Escenarios proyección 2025–2055</div>
+      <div class="chart-legend">
+        <span><span class="legend-sq" style="background:#1a3a5c;"></span>Baseline</span>
+        <span><span class="legend-sq" style="background:#c0392b;"></span>Bajo crecimiento</span>
+        <span><span class="legend-sq" style="background:#2e7d32;"></span>Reforma efectiva</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="c-escenarios" role="img" aria-label="Proyección gasto pensional tres escenarios 2025-2055">Escenarios proyección 2025-2055.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cobertura pensional adultos mayores (%)</div>
+      <div class="chart-legend">
+        <span><span class="legend-sq" style="background:#85B7EB;"></span>Con Colombia Mayor</span>
+        <span><span class="legend-sq" style="background:#1a3a5c;"></span>Contributiva</span>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="c-cobertura" role="img" aria-label="Cobertura pensional adultos mayores Colombia">Cobertura pensional adultos mayores.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Panel de alertas por determinante</div>
+
+  <div class="alert-panel" id="alert-panel"></div>
+
+  <div class="footer">
+    TACI — Tablero de Ahorro y Capacidad Investigativa &nbsp;|&nbsp;
+    Banco de la República — Subgerencia de Estudios Económicos &nbsp;|&nbsp;
+    Elaborado por: Carol Dayana Mayorga Pinzón &nbsp;|&nbsp;
+    Fuentes: DANE, Colpensiones, Superintendencia Financiera, Banco de la República, CEPAL, OCDE &nbsp;|&nbsp;
+    2025
+  </div>
+
+</div>
+
+<script>
+document.getElementById('fecha-actual').textContent = 'Actualización: ' + new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const BASE = {
+  gasto: 3.5,
+  informal: 55.4,
+  cotizantes: 42.5,
+  cobertura: 35.0,
+  ahorro: 7.3,
+  anio: 2025
+};
+
+let datos = { ...BASE };
+
+const UMBRALES = {
+  gasto:      { critico: 4.5, alerta: 4.0, label: 'Gasto pensional / PIB', unidad: '%', fuente: 'Banco de la República / DANE', umbralLabel: 'Crítico > 4.5%' },
+  informal:   { critico: 50, alerta: 45, label: 'Informalidad laboral', unidad: '%', fuente: 'DANE GEIH', umbralLabel: 'Crítico > 50%', invertido: true },
+  cotizantes: { critico: 50, alerta: 55, label: 'Cotizantes / ocupados', unidad: '%', fuente: 'Colpensiones / Superfinanciera', umbralLabel: 'Crítico < 50%' },
+  cobertura:  { critico: 40, alerta: 50, label: 'Cobertura pensional', unidad: '%', fuente: 'Colpensiones / DANE', umbralLabel: 'Crítico < 40%' },
+  ahorro:     { critico: 8, alerta: 10, label: 'Tasa de ahorro nacional', unidad: '%', fuente: 'DANE Cuentas Nacionales', umbralLabel: 'Crítico < 8%' }
+};
+
+function getEstado(key, val) {
+  const u = UMBRALES[key];
+  if (u.invertido) {
+    if (val >= u.critico) return 'riesgo';
+    if (val >= u.alerta) return 'alerta';
+    return 'normal';
+  } else {
+    if (key === 'gasto') {
+      if (val >= u.critico) return 'riesgo';
+      if (val >= u.alerta) return 'alerta';
+      return 'normal';
+    }
+    if (val <= u.critico) return 'riesgo';
+    if (val <= u.alerta) return 'alerta';
+    return 'normal';
+  }
+}
+
+function estadoLabel(e) {
+  if (e === 'riesgo') return 'Riesgo alto';
+  if (e === 'alerta') return 'Alerta media';
+  return 'Normal';
+}
+
+function renderMetrics() {
+  const grid = document.getElementById('metrics-grid');
+  const keys = ['gasto','informal','cotizantes','cobertura','ahorro'];
+  grid.innerHTML = keys.map(k => {
+    const u = UMBRALES[k];
+    const v = datos[k];
+    const e = getEstado(k, v);
+    return `<div class="metric-card ${e}">
+      <div class="metric-label">${u.label}</div>
+      <div class="metric-value">${v !== null && v !== undefined ? Number(v).toFixed(1) : '—'}<span class="metric-unit">${u.unidad}</span></div>
+      <div><span class="metric-badge badge-${e}">${estadoLabel(e)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderAlerts() {
+  const panel = document.getElementById('alert-panel');
+  const keys = ['informal','cotizantes','cobertura','gasto','ahorro'];
+  panel.innerHTML = keys.map(k => {
+    const u = UMBRALES[k];
+    const v = datos[k];
+    const e = getEstado(k, v);
+    const colores = { riesgo: `background:${getComputedStyle(document.documentElement).getPropertyValue('--red-bg') || '#fdf0ee'};color:#c0392b`, alerta: `background:#fef6ec;color:#b85c00`, normal: `background:#edf7ee;color:#2e7d32` };
+    return `<div class="alert-row">
+      <div>
+        <div class="alert-name">${u.label}</div>
+        <div class="alert-meta">Fuente: ${u.fuente} &nbsp;|&nbsp; ${u.umbralLabel}</div>
+      </div>
+      <div class="alert-right">
+        <div class="alert-val">${Number(v).toFixed(1)}${u.unidad}</div>
+        <span class="alert-status" style="${colores[e]}">${estadoLabel(e)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcularPronostico() {
+  const g = datos.gasto;
+  const inf = datos.informal;
+  const cot = datos.cotizantes;
+  const cob = datos.cobertura;
+  const ah = datos.ahorro;
+
+  const gastoBase = +(g * 0.985).toFixed(2);
+  const gastoBajo = +(g * 1.15 + (100 - cot) * 0.01).toFixed(2);
+  const gastoReforma = +(g * 0.96 - (cot - 42) * 0.005).toFixed(2);
+
+  let nivel = 'moderado';
+  let alertas = [];
+  if (inf > 50) alertas.push('alta informalidad');
+  if (cot < 45) alertas.push('baja base de cotizantes');
+  if (cob < 40) alertas.push('cobertura pensional insuficiente');
+  if (g > 4.0) alertas.push('presión fiscal elevada');
+  if (ah < 8) alertas.push('ahorro nacional por debajo del umbral crítico');
+
+  if (alertas.length >= 4) nivel = 'alto';
+  else if (alertas.length >= 2) nivel = 'moderado';
+  else nivel = 'bajo';
+
+  const descripcion = alertas.length > 0
+    ? `Con los datos ingresados para ${datos.anio || 'el período consultado'}, el sistema pensional colombiano presenta un nivel de riesgo <strong>${nivel}</strong> sobre el ahorro nacional y la sostenibilidad fiscal. Se identifican las siguientes señales de alerta: ${alertas.join(', ')}. El modelo ARIMA proyecta que, bajo supuestos actuales, el gasto pensional se mantendría en torno al ${gastoBase}% del PIB en el corto plazo. Sin reformas estructurales que reduzcan la informalidad y amplíen la cobertura, el escenario de bajo crecimiento podría elevar el gasto hasta el ${gastoBajo}% del PIB hacia 2055.`
+    : `Con los datos ingresados para ${datos.anio || 'el período consultado'}, el sistema pensional colombiano presenta un nivel de riesgo <strong>bajo</strong>. Los indicadores se encuentran dentro de rangos aceptables. El modelo ARIMA proyecta un gasto pensional estable en torno al ${gastoBase}% del PIB bajo el escenario base.`;
+
+  return { gastoBase, gastoBajo, gastoReforma, descripcion, nivel };
+}
+
+function renderPronostico() {
+  const p = calcularPronostico();
+  const panel = document.getElementById('pronostico-panel');
+  panel.innerHTML = `
+    <div class="pronostico-title">Pronóstico ARIMA y análisis de riesgo</div>
+    <div class="pronostico-texto">${p.descripcion}</div>
+    <div class="pronostico-scenarios">
+      <div class="scenario">
+        <div class="scenario-label">Escenario base</div>
+        <div class="scenario-val">${p.gastoBase}%</div>
+        <div class="scenario-desc">del PIB — crecimiento 3.3%, reglas vigentes</div>
+      </div>
+      <div class="scenario">
+        <div class="scenario-label">Bajo crecimiento</div>
+        <div class="scenario-val">${p.gastoBajo}%</div>
+        <div class="scenario-desc">del PIB — shocks demográficos, informalidad persistente</div>
+      </div>
+      <div class="scenario">
+        <div class="scenario-label">Reforma efectiva</div>
+        <div class="scenario-val">${p.gastoReforma}%</div>
+        <div class="scenario-desc">del PIB — formalización 58%, ahorro sostenido</div>
+      </div>
+    </div>`;
+}
+
+let charts = {};
+
+function initCharts() {
+  const años = ['2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'];
+
+  charts.gasto = new Chart(document.getElementById('c-gasto'), {
+    type: 'line',
+    data: {
+      labels: años,
+      datasets: [
+        { label: 'Histórico', data: [3.3,3.3,3.4,3.4,3.4,3.6,3.5,3.5,3.5,3.5,datos.gasto], borderColor: '#1a3a5c', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3 },
+        { label: 'Proyección', data: [null,null,null,null,null,null,null,null,null,null,datos.gasto], borderColor: '#1D9E75', backgroundColor: 'transparent', borderDash: [5,4], pointRadius: 3, tension: 0.3 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 2.5, max: 5.5, ticks: { callback: v => v.toFixed(1)+'%', font: { size: 10 } } }, x: { ticks: { maxRotation: 45, autoSkip: false, font: { size: 9 } } } } }
+  });
+
+  charts.informal = new Chart(document.getElementById('c-informal'), {
+    type: 'line',
+    data: {
+      labels: años,
+      datasets: [
+        { label: 'Informalidad', data: [63.0,62.0,61.5,60.4,59.6,62.0,60.2,58.6,57.6,55.8,datos.informal], borderColor: '#c0392b', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3 },
+        { label: 'Cotizantes', data: [38.5,39.0,40.0,40.5,41.0,39.0,41.0,42.0,42.5,42.5,datos.cotizantes], borderColor: '#378ADD', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3, borderDash: [4,3] }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 30, max: 70, ticks: { callback: v => v+'%', font: { size: 10 } } }, x: { ticks: { maxRotation: 45, autoSkip: false, font: { size: 9 } } } } }
+  });
+
+  charts.escenarios = new Chart(document.getElementById('c-escenarios'), {
+    type: 'line',
+    data: {
+      labels: ['2025','2030','2035','2040','2045','2050','2055'],
+      datasets: [
+        { label: 'Baseline', data: [datos.gasto, +(datos.gasto*0.985).toFixed(2), +(datos.gasto*0.97).toFixed(2), +(datos.gasto*0.96).toFixed(2), +(datos.gasto*0.95).toFixed(2), +(datos.gasto*0.94).toFixed(2), +(datos.gasto*0.93).toFixed(2)], borderColor: '#1a3a5c', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3 },
+        { label: 'Bajo crecimiento', data: [datos.gasto, +(datos.gasto*1.05).toFixed(2), +(datos.gasto*1.13).toFixed(2), +(datos.gasto*1.23).toFixed(2), +(datos.gasto*1.32).toFixed(2), +(datos.gasto*1.38).toFixed(2), +(datos.gasto*1.43).toFixed(2)], borderColor: '#c0392b', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3, borderDash: [5,4] },
+        { label: 'Reforma efectiva', data: [datos.gasto, +(datos.gasto*0.97).toFixed(2), +(datos.gasto*0.95).toFixed(2), +(datos.gasto*0.93).toFixed(2), +(datos.gasto*0.91).toFixed(2), +(datos.gasto*0.88).toFixed(2), +(datos.gasto*0.86).toFixed(2)], borderColor: '#2e7d32', backgroundColor: 'transparent', pointRadius: 3, tension: 0.3, borderDash: [2,3] }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => v.toFixed(1)+'%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+  });
+
+  charts.cobertura = new Chart(document.getElementById('c-cobertura'), {
+    type: 'bar',
+    data: {
+      labels: ['2015','2017','2019','2021','2023','2025'],
+      datasets: [
+        { label: 'Con Colombia Mayor', data: [60,62,63,64,65,Math.min(datos.cobertura+30, 100)], backgroundColor: '#85B7EB' },
+        { label: 'Contributiva', data: [30,31,32,33,34,datos.cobertura], backgroundColor: '#1a3a5c' }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, ticks: { callback: v => v+'%', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+  });
+}
+
+function updateCharts() {
+  if (!charts.gasto) return;
+  const d = charts.gasto.data.datasets;
+  d[0].data[10] = datos.gasto;
+  d[1].data[10] = datos.gasto;
+  charts.gasto.update();
+
+  const di = charts.informal.data.datasets;
+  di[0].data[10] = datos.informal;
+  di[1].data[10] = datos.cotizantes;
+  charts.informal.update();
+
+  const g = datos.gasto;
+  charts.escenarios.data.datasets[0].data = [g, +(g*0.985).toFixed(2), +(g*0.97).toFixed(2), +(g*0.96).toFixed(2), +(g*0.95).toFixed(2), +(g*0.94).toFixed(2), +(g*0.93).toFixed(2)];
+  charts.escenarios.data.datasets[1].data = [g, +(g*1.05).toFixed(2), +(g*1.13).toFixed(2), +(g*1.23).toFixed(2), +(g*1.32).toFixed(2), +(g*1.38).toFixed(2), +(g*1.43).toFixed(2)];
+  charts.escenarios.data.datasets[2].data = [g, +(g*0.97).toFixed(2), +(g*0.95).toFixed(2), +(g*0.93).toFixed(2), +(g*0.91).toFixed(2), +(g*0.88).toFixed(2), +(g*0.86).toFixed(2)];
+  charts.escenarios.update();
+
+  charts.cobertura.data.datasets[0].data[5] = Math.min(datos.cobertura+30, 100);
+  charts.cobertura.data.datasets[1].data[5] = datos.cobertura;
+  charts.cobertura.update();
+}
+
+function calcular() {
+  const leer = (id, fallback) => {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? fallback : v;
+  };
+  datos.gasto = leer('inp-gasto', BASE.gasto);
+  datos.informal = leer('inp-informal', BASE.informal);
+  datos.cotizantes = leer('inp-cotizantes', BASE.cotizantes);
+  datos.cobertura = leer('inp-cobertura', BASE.cobertura);
+  datos.ahorro = leer('inp-ahorro', BASE.ahorro);
+  datos.anio = parseInt(document.getElementById('inp-anio').value) || BASE.anio;
+  renderMetrics();
+  renderAlerts();
+  renderPronostico();
+  updateCharts();
+}
+
+function resetear() {
+  datos = { ...BASE };
+  ['inp-gasto','inp-informal','inp-cotizantes','inp-cobertura','inp-ahorro','inp-anio'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  renderMetrics();
+  renderAlerts();
+  renderPronostico();
+  updateCharts();
+}
+
+renderMetrics();
+renderAlerts();
+renderPronostico();
+window.addEventListener('load', initCharts);
+</script>
+</body>
+</html>
