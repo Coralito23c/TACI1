@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TACI — Tablero de Ahorro y Capacidad Investigativa</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+:root{
+  --azul:#1A3A5C;--azulM:#2E75B6;--azulL:#D6E4F0;
+  --dorado:#C8A84B;--doradoL:#F5F0E0;
+  --rojo:#B71C1C;--rojoBg:#FEF0F0;
+  --verde:#1B5E20;--verdeBg:#EDF7EE;
+  --ambar:#C65E00;--ambarBg:#FEF6EC;
+  --bg:#F7F7F5;--surface:#fff;
+  --border:#DDE3EA;--text:#1A1917;--muted:#5A6472;
+  --serif:'Libre Baskerville',serif;--sans:'Source Sans 3',sans-serif;
+  --shadow:0 2px 14px rgba(26,58,92,0.09);--radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+
+/* HEADER */
+.hbar{background:var(--azul);border-bottom:4px solid var(--dorado);}
+.hinner{max-width:1200px;margin:0 auto;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.hleft .tname{font-family:var(--serif);font-size:28px;font-weight:700;color:#fff;letter-spacing:1px;}
+.hleft .tsub{font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:.5px;margin-top:2px;display:block;}
+.hright{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;}
+.hmeta{text-align:right;color:rgba(255,255,255,0.7);font-size:11.5px;line-height:1.8;}
+.hmeta strong{color:#fff;}
+.qrb{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.qrb img{width:68px;height:68px;border-radius:6px;border:2px solid var(--dorado);background:#fff;padding:3px;}
+.qrb span{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:.8px;text-transform:uppercase;}
+
+.desc-wrap{max-width:1200px;margin:1.2rem auto 0;padding:0 1.5rem;}
+.desc-card{background:var(--doradoL);border-left:4px solid var(--dorado);border-radius:0 8px 8px 0;padding:.9rem 1.3rem;}
+.desc-card p{font-size:13.5px;color:#3a2e00;line-height:1.7;}
+.desc-card p+p{margin-top:.5rem;}
+
+.shell{max-width:1200px;margin:0 auto;padding:1.4rem 1.5rem 4rem;}
+.slabel{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);
+  margin:1.6rem 0 .9rem;display:flex;align-items:center;gap:8px;font-weight:700;}
+.slabel::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* INPUT PANEL */
+.ipanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.4rem;margin-bottom:.8rem;box-shadow:var(--shadow);}
+.iinfo{font-size:12.5px;color:var(--muted);margin-bottom:1.1rem;padding:.75rem 1rem;
+  background:var(--azulL);border-radius:7px;border-left:3px solid var(--azulM);line-height:1.7;}
+.iinfo strong{color:var(--azul);}
+.iinfo ul{margin:.4rem 0 0 1rem;}
+.iinfo li{margin-bottom:.2rem;}
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:.9rem;margin-bottom:1.1rem;}
+.ifield{display:flex;flex-direction:column;gap:3px;}
+.ifield label{font-size:11px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.3px;}
+.ifield input,.ifield select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;
+  font-family:var(--sans);font-size:13px;color:var(--text);background:#FAFAFA;outline:none;transition:.2s;}
+.ifield input:focus,.ifield select:focus{border-color:var(--azulM);background:var(--azulL);}
+.imeta{font-size:10px;color:var(--muted);line-height:1.45;margin-top:2px;}
+.imeta .vact{font-weight:700;color:var(--azul);}
+.imeta a{color:var(--azulM);text-decoration:none;font-size:9.5px;display:block;margin-top:1px;}
+.imeta a:hover{text-decoration:underline;}
+.trim-wrap{display:none;margin-top:5px;}
+.trim-wrap.visible{display:block;}
+.trim-wrap label{font-size:10px;font-weight:600;color:var(--ambar);text-transform:uppercase;margin-bottom:3px;display:block;}
+.trim-missing{font-size:9.5px;color:var(--rojo);font-weight:600;margin-top:3px;}
+.brow{display:flex;gap:.7rem;flex-wrap:wrap;}
+.bmain{background:var(--azul);color:#fff;border:none;padding:10px 24px;border-radius:7px;
+  font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:.2s;flex:1;min-width:120px;}
+.bmain:hover{background:var(--azulM);}
+.bsec{background:transparent;color:var(--muted);border:1.5px solid var(--border);padding:10px 18px;
+  border-radius:7px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:.2s;flex:1;min-width:120px;}
+.bsec:hover{border-color:var(--rojo);color:var(--rojo);}
+
+/* PANEL DATOS ACTIVOS — debajo del ingreso */
+.active-panel{background:var(--ambarBg);border:1px solid var(--ambar);border-radius:var(--radius);
+  padding:1.1rem 1.3rem;margin-bottom:1.4rem;display:none;}
+.active-panel.show{display:block;}
+.active-panel-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-bottom:.6rem;}
+.active-panel-head strong{font-size:13px;color:#7a3800;}
+.active-panel-head .exp-tag{font-size:11px;color:var(--ambar);background:#fff;border:1px solid var(--ambar);
+  padding:2px 8px;border-radius:12px;font-weight:600;}
+.active-panel-desc{font-size:12px;color:#7a3800;line-height:1.65;margin-bottom:.8rem;}
+.active-panel-desc strong{color:#5a2800;}
+.active-btn-row{display:flex;gap:.6rem;flex-wrap:wrap;}
+.btn-restablecer{background:var(--rojo);color:#fff;border:none;padding:8px 18px;border-radius:7px;
+  font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:pointer;transition:.2s;}
+.btn-restablecer:hover{background:#8b0000;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,58,92,0.75);z-index:1000;
+  align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:2rem;max-width:500px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);border-top:4px solid var(--dorado);}
+.modal h3{font-family:var(--serif);font-size:17px;color:var(--azul);margin-bottom:.8rem;}
+.modal-body{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:1rem;
+  background:var(--azulL);border-radius:8px;padding:.9rem;}
+.resumen-row{display:flex;justify-content:space-between;font-size:12.5px;
+  padding:4px 0;border-bottom:1px solid var(--border);}
+.resumen-row:last-child{border-bottom:none;}
+.resumen-row strong{color:var(--azul);}
+.modal-note{font-size:12px;color:#7a3800;font-weight:600;margin-bottom:1.2rem;
+  padding:.65rem .9rem;background:var(--ambarBg);border-radius:6px;border-left:3px solid var(--ambar);line-height:1.6;}
+.modal-brow{display:flex;gap:.75rem;}
+.mok{background:var(--verde);color:#fff;border:none;padding:10px 20px;
+  border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;flex:1;}
+.mok:hover{background:#155724;}
+.mcancel{background:transparent;color:var(--muted);border:1.5px solid var(--border);
+  padding:10px 20px;border-radius:7px;font-family:var(--sans);font-size:13px;cursor:pointer;flex:1;}
+.mcancel:hover{border-color:var(--azulM);color:var(--azul);}
+
+/* BADGE AÑO */
+.abadge{display:inline-flex;align-items:center;gap:6px;background:var(--azul);color:var(--dorado);
+  font-family:var(--serif);font-size:13.5px;font-weight:700;padding:4px 14px;border-radius:20px;margin-bottom:.7rem;}
+
+/* MÉTRICAS */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:.9rem;margin-bottom:1.6rem;}
+.mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem 1.1rem;box-shadow:var(--shadow);border-top:3px solid var(--border);}
+.mcard.riesgo{border-top-color:var(--rojo);background:var(--rojoBg);}
+.mcard.alerta{border-top-color:var(--ambar);background:var(--ambarBg);}
+.mcard.normal{border-top-color:var(--verde);background:var(--verdeBg);}
+.mlabel{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.35rem;}
+.mvalue{font-family:var(--serif);font-size:28px;font-weight:700;color:var(--azul);line-height:1;margin-bottom:.35rem;}
+.munit{font-size:13px;font-weight:400;color:var(--muted);margin-left:2px;}
+.mbadge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:9.5px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;margin-bottom:.35rem;}
+.mbadge.riesgo{background:var(--rojo);color:#fff;}
+.mbadge.alerta{background:var(--ambar);color:#fff;}
+.mbadge.normal{background:var(--verde);color:#fff;}
+.mumb{font-size:9px;color:var(--muted);line-height:1.5;margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
+.mumb strong{color:var(--azul);}
+
+/* CHARTS */
+.ccard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.1rem 1.2rem .9rem;box-shadow:var(--shadow);margin-bottom:1.2rem;}
+.ctitle{font-size:12px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.7px;margin-bottom:.4rem;}
+.clegend{display:flex;gap:.8rem;flex-wrap:wrap;margin-bottom:.5rem;}
+.li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);}
+.ld{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+.cwrap{height:220px;position:relative;}
+/* Explicación de la gráfica */
+.cexpl{margin-top:.9rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;}
+.cexpl-title{font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem;}
+.cexpl-items{display:flex;flex-direction:column;gap:.3rem;}
+.cexpl-row{display:flex;align-items:flex-start;gap:.5rem;font-size:11.5px;color:var(--muted);line-height:1.5;}
+.cexpl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.cexpl-row strong{color:var(--text);}
+
+/* PRONÓSTICO */
+.ppanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.4rem;margin-bottom:1.2rem;box-shadow:var(--shadow);}
+.ptitle{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--azul);
+  margin-bottom:.75rem;display:flex;align-items:center;gap:7px;}
+.ptitle::before{content:'';width:3px;height:18px;background:var(--dorado);border-radius:2px;flex-shrink:0;}
+.ptext{font-size:13.5px;color:var(--text);line-height:1.75;margin-bottom:1.1rem;
+  padding:.9rem 1.1rem;background:var(--azulL);border-radius:8px;border-left:3px solid var(--azulM);}
+.scgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-bottom:1rem;}
+.sccard{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;text-align:center;}
+.sclabel{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600;margin-bottom:.35rem;}
+.scval{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--azul);margin-bottom:.25rem;}
+.scdesc{font-size:10.5px;color:var(--muted);line-height:1.4;}
+/* Explicación de escenarios */
+.sc-expl{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-bottom:1rem;}
+.sc-expl-title{font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.6rem;}
+.sc-expl-row{display:flex;align-items:flex-start;gap:.6rem;font-size:12px;color:var(--muted);
+  line-height:1.6;padding:.4rem 0;border-bottom:1px solid var(--border);}
+.sc-expl-row:last-child{border-bottom:none;}
+.sc-expl-row .sc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.sc-expl-row strong{color:var(--text);}
+
+.footer{border-top:1px solid var(--border);padding-top:.9rem;margin-top:.9rem;font-size:11px;color:var(--muted);line-height:1.8;}
+.footer strong{color:var(--azul);}
+.footer a{color:var(--azulM);text-decoration:none;}
+.footer a:hover{text-decoration:underline;}
+
+@media(max-width:640px){
+  .hinner{flex-direction:column;align-items:flex-start;gap:.8rem;}
+  .hright{width:100%;justify-content:space-between;}
+  .hmeta{text-align:left;font-size:11px;}
+  .qrb{display:none;}
+  .igrid{grid-template-columns:1fr 1fr;}
+  .mgrid{grid-template-columns:1fr 1fr;}
+  .scgrid{grid-template-columns:1fr;}
+  .cwrap{height:180px;}
+  .mvalue{font-size:24px;}
+  .shell,.desc-wrap{padding-left:1rem;padding-right:1rem;}
+  .brow,.modal-brow,.active-btn-row{flex-direction:column;}
+  .bmain,.bsec,.mok,.mcancel,.btn-restablecer{width:100%;}
+  .cexpl-row,.sc-expl-row{font-size:11px;}
+}
+@media(max-width:380px){
+  .igrid,.mgrid{grid-template-columns:1fr;}
+  .hleft .tname{font-size:22px;}
+}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>¿Confirmar los datos ingresados?</h3>
+    <div class="modal-body">
+      <p style="margin-bottom:.7rem;">Verifique que los siguientes valores sean correctos antes de continuar. El tablero actualizará el semáforo, las gráficas y el pronóstico ARIMA con esta información.</p>
+      <div id="modal-resumen"></div>
+    </div>
+    <div class="modal-note">
+      ⏱ Una vez confirmados, los datos quedarán activos durante <strong>72 horas</strong>. Si transcurre ese tiempo sin que presione <em>"Restablecer datos base"</em>, el valor ingresado se incorporará definitivamente al histórico del tablero.
+    </div>
+    <div class="modal-brow">
+      <button class="mok" onclick="confirmarCalculo()">Sí, estos son mis datos</button>
+      <button class="mcancel" onclick="cerrarModal()">Volver a revisar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hbar">
+  <div class="hinner">
+    <div class="hleft">
+      <div class="tname">TACI</div>
+      <span class="tsub">Tablero de Ahorro y Capacidad Investigativa</span>
+    </div>
+    <div class="hright">
+      <div class="hmeta">
+        Elaborado por: <strong>Carol Dayana Mayorga Pinzón</strong><br>
+        Subgerencia de Estudios Económicos · Banco de la República<br>
+        Período de análisis: <strong>2015–2025</strong>
+      </div>
+      <div class="qrb">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAIAAAAG+WgKAAAEEklEQVR4nO3d24kdORRA0fHgLCYUx+LoJpYJxXH0/BoLjBBbjzZrfZq+t6rdG8GhHvry8fHxF3T+vn0C/GkkRUxSxCRFTFLEJEVMUsQkRUxSxCRFTFLEvs780D/fvu8+j9/48d+/v/zLeD4zP1Mda834zWte+1uMrFLEJEVMUsQkRUxSxKYmvlE1v4z2TVjVDDiamUCrT41e+1tYpYhJipikiEmKmKSILU58o33z1NrR981Bo7X5bp+7fwurFDFJEZMUMUkRkxSxbOI7qZqw1macffeL3p1bK1YpYpIiJilikiImKWKfcuI7eQ2rmsL2TaCvsUoRkxQxSRGTFDFJEcsmvrt3Ue67Z/LkfPf+k30zrFLEJEVMUsQkRUxSxBYnvrtvjKze1bn2PSffHTrj7t9iZJUiJilikiImKWKSIvbFDuw/2/ck3Z/xjN4MqxQxSRGTFDFJEZMUscX9+F57O+XaNbV9T/ad/JnqDGfYj48LJEVMUsQkRUxSxLK7OsdZYN/8snY+M+/GXLPv+t3dyXrtt7BKEZMUMUkRkxQxSRHLdmA/eR3wtSuMM0evJuK71+9mWKWISYqYpIhJipikiE1NfHf3rVs71sl5c+179l1hnPmZ6u7QkVWKmKSISYqYpIhJitjic3xr7u5CfvKNmjPnfPfo+1iliEmKmKSISYqYpIhtvMZXffPJGXDf0U++q/PuHa1WKWKSIiYpYpIiJilii7sznHzi7P23XL6/I/xo3/+hVYqYpIhJipikiEmK2NH9+N7fMWHtWKO7M+DdvSGsUsQkRUxSxCRFTFLEpia+197BcvJ5t2pKPTmTrh29YpUiJilikiImKWKSIrZx4hu9PwPOOPnm0rWj77ufdoZVipikiEmKmKSISYrY0YlvzWv7zd19l8v7n7JKEZMUMUkRkxQxSRHLJr67z82tnc/ap1570vDuFb2RVYqYpIhJipikiEmK2MaJb+17Zr757vmsuXsn6hp3dfIESRGTFDFJEZMUsaPv6qycvFpXfWrNybeJVqxSxCRFTFLEJEVMUsSmdmB/7Tm+fT8z4+R7L187+gyrFDFJEZMUMUkRkxSxqYlvtG/KWJsuT171W/vdT+4EUX3Km1t4gqSISYqYpIhJitjixDe6+/7MmWmuesPJzPdU8111ddV+fHxikiImKWKSIiYpYtnEd9faNPfaG2BO7sm+j1WKmKSISYqYpIhJitinnPj2vXFl5ntmzufkrvHVGVasUsQkRUxSxCRFTFLEsonv7rWnk3dIzrj7v7FvL8IZVilikiImKWKSIiYpYtl+fPvcvYI2cz4zqh3Y7z4vOcMqRUxSxCRFTFLEJEXsU+7Hx8usUsQkRUxSxCRFTFLEJEVMUsQkRUxSxCRFTFLE/gcjIyRUKHO+9AAAAABJRU5ErkJggg==" alt="QR TACI">
+        <span>Escanear TACI</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DESCRIPCIÓN -->
+<div class="desc-wrap">
+  <div class="desc-card">
+    <p>El <strong>TACI</strong> monitorea los cinco determinantes del sistema pensional colombiano para anticipar riesgos sobre el ahorro nacional y la sostenibilidad fiscal. Cada indicador se clasifica en <strong>normal</strong>, <strong>alerta media</strong> o <strong>riesgo alto</strong> según umbrales definidos por la OCDE (2021) y la CEPAL (2018).</p>
+    <p><strong>¿Cómo usar este tablero?</strong> Consulte las fuentes oficiales indicadas en cada campo e ingrese los datos disponibles del período que desea analizar. Si ingresa el año y solo algunos valores, los campos vacíos se completarán con el promedio histórico acumulado hasta ese año. Si ingresa únicamente el año, el tablero mostrará el promedio de toda la serie disponible para ese período.</p>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- INGRESO DE DATOS -->
+<div class="slabel" style="margin-top:.8rem;">Ingreso de datos</div>
+<div class="ipanel">
+  <div class="iinfo">
+    Los datos que se muestran a continuación corresponden a los valores más recientes disponibles en cada fuente oficial (2025). Ingrese los datos del período que desea consultar. Los campos con ✏️ son editables; los que deje vacíos se completarán con el promedio histórico hasta el año ingresado.
+  </div>
+  <div class="igrid">
+
+    <div class="ifield">
+      <label>Informalidad laboral (%)</label>
+      <input type="number" id="inp-informal" step="0.1" min="0" max="100" placeholder="Ej: 55.6"
+        oninput="mostrarTrim('inf',this.value)">
+      <div class="trim-wrap" id="trim-inf-wrap">
+        <label>¿De qué trimestre es este dato?</label>
+        <select id="sel-trim-inf">
+          <option value="">-- Seleccione --</option>
+          <option value="T1 Ene–Mar">T1 Ene–Mar</option>
+          <option value="T2 Abr–Jun">T2 Abr–Jun</option>
+          <option value="T3 Jul–Sep">T3 Jul–Sep</option>
+          <option value="T4 Oct–Dic">T4 Oct–Dic</option>
+        </select>
+        <div class="trim-missing">⏳ T1 y T2 de 2026 aún no publicados por el DANE</div>
+      </div>
+      <div class="imeta">
+        Último disponible: <span class="vact">55.6% (2025)</span>
+        <a href="https://www.dane.gov.co/index.php/estadisticas-por-tema/mercado-laboral/empleo-informal-y-seguridad-social" target="_blank">↗ DANE — Empleo informal y seguridad social</a>
+      </div>
+    </div>
+
+    <div class="ifield">
+      <label>Cotizantes / ocupados (%)</label>
+      <input type="number" id="inp-cotizantes" step="0.1" min="0" max="100" placeholder="Ej: 42.5"
+        oninput="mostrarTrim('cot',this.value)">
+      <div class="trim-wrap" id="trim-cot-wrap">
+        <label>¿De qué trimestre es este dato?</label>
+        <select id="sel-trim-cot">
+          <option value="">-- Seleccione --</option>
+          <option value="T1 Ene–Mar">T1 Ene–Mar</option>
+          <option value="T2 Abr–Jun">T2 Abr–Jun</option>
+          <option value="T3 Jul–Sep">T3 Jul–Sep</option>
+          <option value="T4 Oct–Dic">T4 Oct–Dic</option>
+        </select>
+        <div class="trim-missing">⏳ T1 y T2 de 2026 aún no publicados por el DANE</div>
+      </div>
+      <div class="imeta">
+        Último disponible: <span class="vact">42.5% (2025)</span>
+        <a href="https://www.dane.gov.co/index.php/estadisticas-por-tema/mercado-laboral/empleo-informal-y-seguridad-social" target="_blank">↗ DANE — GEIH Seguridad Social</a>
+      </div>
+    </div>
+
+    <div class="ifield">
+      <label>Gasto pensional / PIB (%)</label>
+      <input type="number" id="inp-gasto" step="0.1" min="0" max="20" placeholder="Ej: 3.5">
+      <div class="imeta">
+        Último disponible: <span class="vact">3.5% (2025)</span>
+        <a href="https://repositorio.banrep.gov.co/server/api/core/bitstreams/7a917682-c836-43d7-b644-94a387c2df6d/content" target="_blank">↗ Banrep — Parra-Polanía et al. (2024)</a>
+        <a href="https://www.banrep.gov.co/es/publicaciones-investigaciones/informe-politica-monetaria/enero-2026" target="_blank">↗ Banrep — Informe de Política Monetaria</a>
+      </div>
+    </div>
+
+    <div class="ifield">
+      <label>Cobertura pensional (%)</label>
+      <input type="number" id="inp-cobertura" step="0.1" min="0" max="100" placeholder="Ej: 43.0">
+      <div class="imeta">
+        Último disponible: <span class="vact">43.0% (2025)</span>
+        <a href="https://www.colpensiones.gov.co/colpensiones/Publicaciones/estadisticas" target="_blank">↗ Colpensiones — Estadísticas</a>
+        <a href="https://www.repository.fedesarrollo.org.co/bitstream/handle/11445/3890/WP_No_78_2020_Enero.pdf" target="_blank">↗ Fedesarrollo Working Paper No.78</a>
+      </div>
+    </div>
+
+    <div class="ifield">
+      <label>Ahorro nacional / PIB (%)</label>
+      <input type="number" id="inp-ahorro" step="0.1" min="0" max="100" placeholder="Ej: 15.4">
+      <div class="imeta">
+        Último disponible: <span class="vact">15.4% (2025)</span>
+        <a href="https://datos.bancomundial.org/indicador/NY.GNS.ICTR.ZS?locations=CO" target="_blank">↗ Banco Mundial — NY.GNS.ICTR.ZS</a>
+      </div>
+    </div>
+
+    <div class="ifield">
+      <label>Año consultado</label>
+      <input type="number" id="inp-anio" min="2015" max="2035" placeholder="Ej: 2025">
+      <div class="imeta">Si solo ingresa el año, se calcula el promedio histórico acumulado hasta ese período.</div>
+    </div>
+
+  </div>
+  <div class="brow">
+    <button class="bmain" onclick="abrirModal()">Consultar</button>
+    <button class="bsec" onclick="resetearRapido()">Restablecer</button>
+  </div>
+</div>
+
+<!-- PANEL DATOS PERSONALIZADOS ACTIVOS -->
+<div class="active-panel" id="active-panel">
+  <div class="active-panel-head">
+    <strong>📊 Datos personalizados activos</strong>
+    <span class="exp-tag" id="exp-tag">⏱ cargando...</span>
+  </div>
+  <div class="active-panel-desc" id="active-desc">
+    El tablero está mostrando valores que usted ingresó. El botón <strong>"Restablecer"</strong> junto a <em>Consultar</em> descarta los cambios inmediatamente y vuelve a los datos base del período 2015-2025. Si usted <strong>no presiona ese botón en 72 horas</strong>, el dato ingresado se incorporará permanentemente al histórico del tablero y pasará a hacer parte de la serie oficial registrada en la herramienta.
+  </div>
+  <div class="active-btn-row">
+    <button class="btn-restablecer" onclick="resetearConHistorial()">🔄 Restablecer datos base (elimina el registro)</button>
+  </div>
+</div>
+
+<div id="abadge-wrap"></div>
+<div class="slabel" id="slabel-ind">Indicadores · 2025</div>
+<div class="mgrid" id="mgrid"></div>
+
+<!-- GRÁFICA 1 -->
+<div class="slabel">Informalidad laboral y cotizantes/ocupados · Colombia 2015-2025</div>
+<div class="ccard">
+  <div class="ctitle">Informalidad laboral y cotizantes/ocupados (%)</div>
+  <div class="clegend">
+    <span class="li"><span class="ld" style="background:#B71C1C"></span>Informalidad (%)</span>
+    <span class="li"><span class="ld" style="background:#2E75B6"></span>Cotizantes/Ocup. (%)</span>
+    <span class="li"><span class="ld" style="background:#C65E00"></span>Umbral CEPAL 50%</span>
+  </div>
+  <div class="cwrap" style="height:240px"><canvas id="c-informal"></canvas></div>
+  <div class="cexpl">
+    <div class="cexpl-title">¿Qué muestra esta gráfica?</div>
+    <div class="cexpl-items">
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#B71C1C"></span><span><strong>Informalidad laboral (línea roja):</strong> porcentaje de trabajadores ocupados que no cotizan al sistema pensional. Cuanto más alta, menos trabajadores aportan recursos al sistema. Fuente: DANE GEIH.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#2E75B6"></span><span><strong>Cotizantes / ocupados (línea azul punteada):</strong> proporción de personas que trabajan y sí aportan activamente a pensiones. Cuanto más baja, menor es la base de financiamiento del sistema. Fuente: DANE GEIH.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#C65E00"></span><span><strong>Umbral crítico CEPAL 50% (línea naranja):</strong> cuando la informalidad supera este nivel, el sistema pensional entra en zona de riesgo alto porque más de la mitad de los trabajadores no aportan. La caída de 2020 se explica por la pandemia (cambio metodológico del DANE).</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- GRÁFICA 2 -->
+<div class="slabel">Gasto público en pensiones como porcentaje del PIB · Colombia 2015-2025</div>
+<div class="ccard">
+  <div class="ctitle">Gasto pensional / PIB (%)</div>
+  <div class="clegend">
+    <span class="li"><span class="ld" style="background:#1A3A5C"></span>Gasto/PIB</span>
+    <span class="li"><span class="ld" style="background:#B71C1C"></span>Riesgo OCDE &gt;4.5%</span>
+    <span class="li"><span class="ld" style="background:#C65E00"></span>Alerta OCDE 4.0%</span>
+    <span class="li"><span class="ld" style="background:#C8A84B"></span>Promedio histórico</span>
+  </div>
+  <div class="cwrap" style="height:240px"><canvas id="c-gasto"></canvas></div>
+  <div class="cexpl">
+    <div class="cexpl-title">¿Qué muestra esta gráfica?</div>
+    <div class="cexpl-items">
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#1A3A5C"></span><span><strong>Gasto pensional / PIB (barras azules):</strong> cuánto gasta el Estado colombiano en pensiones como proporción de toda la economía. Si crece demasiado, presiona las finanzas públicas y puede desplazar inversión en otros sectores. Fuente: Banco de la República.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#B71C1C"></span><span><strong>Umbral riesgo OCDE 4.5% (línea roja):</strong> límite definido por la OCDE a partir del cual el gasto pensional representa una carga fiscal insostenible a largo plazo. Colombia se ha mantenido por debajo, pero la tendencia importa.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#C65E00"></span><span><strong>Umbral alerta OCDE 4.0% (línea naranja):</strong> zona de vigilancia. Entre 4.0% y 4.5% el sistema está en alerta media y requiere monitoreo activo.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#C8A84B"></span><span><strong>Promedio histórico (línea dorada):</strong> valor promedio del período 2015-2025. Sirve como referencia para identificar si el año consultado está por encima o por debajo del comportamiento típico.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- GRÁFICA 3 -->
+<div class="slabel">Cobertura pensional adultos mayores · Colombia 2015-2025</div>
+<div class="ccard">
+  <div class="ctitle">Cobertura pensional contributiva y total (contributiva + Colombia Mayor)</div>
+  <div class="clegend">
+    <span class="li"><span class="ld" style="background:#2E75B6"></span>Cobertura total</span>
+    <span class="li"><span class="ld" style="background:#1A3A5C"></span>Contributiva</span>
+    <span class="li"><span class="ld" style="background:#B71C1C"></span>Umbral CEPAL 40%</span>
+  </div>
+  <div class="cwrap" style="height:240px"><canvas id="c-cobertura"></canvas></div>
+  <div class="cexpl">
+    <div class="cexpl-title">¿Qué muestra esta gráfica?</div>
+    <div class="cexpl-items">
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#2E75B6"></span><span><strong>Cobertura total (línea azul clara, área sombreada):</strong> porcentaje de adultos mayores que recibe algún tipo de ingreso pensional, ya sea por haber cotizado (pensión contributiva) o por el subsidio del Estado (Colombia Mayor). El área entre las dos líneas representa el subsidio no contributivo.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#1A3A5C"></span><span><strong>Cobertura contributiva (línea azul oscuro punteada):</strong> solo los adultos mayores con pensión ganada por sus propios aportes. Este indicador refleja la solidez estructural del sistema; si es bajo, el Estado debe compensar con subsidios.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#B71C1C"></span><span><strong>Umbral mínimo CEPAL 40% (línea roja):</strong> según la CEPAL, un sistema pensional con cobertura contributiva inferior al 40% no protege suficientemente a su población adulta mayor. Colombia ha estado por debajo de este umbral durante casi todo el período analizado.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- GRÁFICA 4 -->
+<div class="slabel">Tasa de ahorro nacional como porcentaje del PIB · Colombia 2015-2025</div>
+<div class="ccard">
+  <div class="ctitle">Ahorro nacional / PIB (%)</div>
+  <div class="clegend">
+    <span class="li"><span class="ld" style="background:#1A3A5C"></span>Ahorro/PIB</span>
+    <span class="li"><span class="ld" style="background:#B71C1C"></span>Riesgo OCDE &lt;8%</span>
+    <span class="li"><span class="ld" style="background:#C65E00"></span>Alerta OCDE 9%</span>
+    <span class="li"><span class="ld" style="background:#C8A84B"></span>Promedio histórico</span>
+  </div>
+  <div class="cwrap" style="height:260px"><canvas id="c-ahorro"></canvas></div>
+  <div class="cexpl">
+    <div class="cexpl-title">¿Qué muestra esta gráfica?</div>
+    <div class="cexpl-items">
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#1A3A5C"></span><span><strong>Ahorro nacional / PIB (barras azules):</strong> proporción del ingreso nacional que se ahorra en lugar de consumirse. Un ahorro alto permite financiar inversión sin depender del endeudamiento externo. La tendencia decreciente entre 2015 y 2022 es una señal de alerta estructural. Fuente: Banco Mundial, indicador NY.GNS.ICTR.ZS.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#B71C1C"></span><span><strong>Umbral riesgo OCDE &lt;8% (línea roja):</strong> por debajo de este nivel, el ahorro interno es insuficiente para financiar la inversión de largo plazo sin depender del ahorro externo, lo que aumenta la vulnerabilidad macroeconómica del país.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#C65E00"></span><span><strong>Umbral alerta OCDE 9% (línea naranja):</strong> zona de vigilancia entre 8% y 9%. El sistema requiere monitoreo porque la tendencia puede llevar al umbral de riesgo.</span></div>
+      <div class="cexpl-row"><span class="cexpl-dot" style="background:#C8A84B"></span><span><strong>Promedio histórico 15.2% (línea dorada):</strong> referencia del comportamiento típico del período. Colombia se ha mantenido muy por encima del umbral crítico, pero la caída sostenida desde 2015 es la señal que el TACI monitorea.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRONÓSTICO ARIMA -->
+<div class="slabel">Pronóstico ARIMA (1,1,1) y análisis de riesgo</div>
+<div class="ppanel" id="ppanel"></div>
+
+<!-- GRÁFICA ESCENARIOS -->
+<div class="slabel">Escenarios proyección gasto pensional / PIB · 2025-2055</div>
+<div class="ccard">
+  <div class="ctitle">Escenarios ARIMA (1,1,1) — Gasto pensional / PIB · Colombia 2025-2055</div>
+  <div class="clegend">
+    <span class="li"><span class="ld" style="background:#1A3A5C"></span>Escenario base</span>
+    <span class="li"><span class="ld" style="background:#B71C1C"></span>Bajo crecimiento</span>
+    <span class="li"><span class="ld" style="background:#1B5E20"></span>Reforma efectiva</span>
+    <span class="li"><span class="ld" style="background:#C65E00"></span>Umbral OCDE 4.5%</span>
+  </div>
+  <div class="cwrap" style="height:280px"><canvas id="c-escenarios"></canvas></div>
+  <div class="sc-expl">
+    <div class="sc-expl-title">¿Qué significa cada escenario?</div>
+    <div class="sc-expl-row">
+      <span class="sc-dot" style="background:#1A3A5C"></span>
+      <span><strong>Escenario base (línea azul):</strong> proyección con las condiciones actuales sin cambios estructurales. Supone un crecimiento económico sostenido del 3.3%, reglas pensionales vigentes y que la informalidad y la cobertura evolucionan a su ritmo actual. El gasto se mantiene relativamente estable. Es el escenario más probable si no ocurre ningún shock mayor.</span>
+    </div>
+    <div class="sc-expl-row">
+      <span class="sc-dot" style="background:#B71C1C"></span>
+      <span><strong>Bajo crecimiento (línea roja punteada):</strong> escenario adverso que combina crecimiento económico lento, envejecimiento acelerado de la población, informalidad persistente y baja densidad de cotización. En este escenario el gasto pensional podría superar el 60% del PIB hacia 2055, desbordando completamente el umbral crítico de la OCDE y comprometiendo la sostenibilidad fiscal del Estado colombiano.</span>
+    </div>
+    <div class="sc-expl-row">
+      <span class="sc-dot" style="background:#1B5E20"></span>
+      <span><strong>Reforma efectiva (línea verde punteada):</strong> escenario optimista que supone la implementación exitosa de reformas estructurales: formalización laboral al 58%, ampliación de la cobertura pensional y ahorro sostenido. En este caso el gasto como porcentaje del PIB disminuye porque más trabajadores aportan al sistema y hay menos presión sobre el gasto público en pensiones.</span>
+    </div>
+    <div class="sc-expl-row">
+      <span class="sc-dot" style="background:#C65E00"></span>
+      <span><strong>Umbral OCDE 4.5% (línea naranja):</strong> línea de referencia que marca el límite a partir del cual el gasto pensional representa una carga fiscal insostenible según la OCDE. Cruzar este umbral implicaría que Colombia destina una proporción excesiva de su economía al pago de pensiones, reduciendo el margen de maniobra de la política monetaria y fiscal.</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <strong>Fuentes:</strong>
+  <a href="https://www.dane.gov.co/index.php/estadisticas-por-tema/mercado-laboral/empleo-informal-y-seguridad-social" target="_blank">DANE — GEIH</a> ·
+  <a href="https://www.colpensiones.gov.co/colpensiones/Publicaciones/estadisticas" target="_blank">Colpensiones</a> ·
+  <a href="https://www.repository.fedesarrollo.org.co/bitstream/handle/11445/3890/WP_No_78_2020_Enero.pdf" target="_blank">Fedesarrollo WP No.78</a> ·
+  <a href="https://www.banrep.gov.co/es/publicaciones-investigaciones/informe-politica-monetaria/enero-2026" target="_blank">Banco de la República — IPM</a> ·
+  <a href="https://repositorio.banrep.gov.co/server/api/core/bitstreams/7a917682-c836-43d7-b644-94a387c2df6d/content" target="_blank">Parra-Polanía et al. (2024)</a> ·
+  <a href="https://datos.bancomundial.org/indicador/NY.GNS.ICTR.ZS?locations=CO" target="_blank">Banco Mundial NY.GNS.ICTR.ZS</a><br>
+  <strong>Umbrales:</strong> OCDE (2021) <em>Pensions at a Glance</em> · CEPAL (2018) <em>Panorama Social de América Latina</em><br>
+  <strong>Metodología:</strong> ARIMA (1,1,1) · Φ₁ ≈ 0.9988 · C = 0.0002 · Serie 2015-2025<br>
+  <strong>Elaborado por:</strong> Carol Dayana Mayorga Pinzón · Práctica profesional · Subgerencia de Estudios Económicos · Banco de la República · 2024-2025 ·
+  <a href="https://coralito23c.github.io/TACI1/" target="_blank">coralito23c.github.io/TACI1</a>
+</div>
+</div>
+
+<script>
+const AÑOS=[2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+const LABELS=AÑOS.map(String);
+const BASE_SERIES={
+  informal:   [49.3,48.6,46.8,48.1,47.4,32.2,59.2,58.0,56.2,55.9,55.6],
+  cotizantes: [35.2,36.4,37.0,37.0,37.0,32.2,41.0,42.0,42.5,42.5,42.5],
+  gasto:      [3.3, 3.3, 3.4, 3.4, 3.6, 3.4, 3.5, 3.5, 3.5, 3.5, 3.5],
+  cobertura:  [35,  36,  37,  37,  37,  32,  41,  42,  43,  43,  43 ],
+  ahorro:     [17.4,17.5,17.1,16.4,16.2,14.4,13.7,12.4,12.7,13.6,15.4]
+};
+const COB_MAYOR=[25,25,24,25,25,31,22,22,22,23,24];
+const BASE_DATOS={informal:55.6,cotizantes:42.5,gasto:3.5,cobertura:43.0,ahorro:15.4,anio:2025};
+let SERIES=JSON.parse(JSON.stringify(BASE_SERIES));
+let datos={...BASE_DATOS};
+const LSKEY='taci_v2';
+const TTL=72*60*60*1000;
+
+const U={
+  informal:  {label:'Informalidad laboral',  unit:'%',inv:true, critico:50,alerta:45,org:'CEPAL (2018)',ur:'&gt; 50%',ua:'45–50%',un:'&lt; 45%'},
+  cotizantes:{label:'Cotizantes / ocupados', unit:'%',inv:false,critico:45,alerta:50,org:'CEPAL (2018)',ur:'&lt; 45%',ua:'45–50%',un:'&gt; 50%'},
+  gasto:     {label:'Gasto pensional / PIB', unit:'%',inv:true, critico:4.5,alerta:4.0,org:'OCDE (2021)', ur:'&gt; 4.5%',ua:'4.0–4.5%',un:'&lt; 4.0%'},
+  cobertura: {label:'Cobertura pensional',   unit:'%',inv:false,critico:40,alerta:50,org:'CEPAL (2018)',ur:'&lt; 40%',ua:'40–50%',un:'&gt; 50%'},
+  ahorro:    {label:'Ahorro nacional / PIB', unit:'%',inv:false,critico:8,alerta:9, org:'OCDE (2021)', ur:'&lt; 8%',ua:'8–9%',un:'&gt; 9%'}
+};
+function est(k,v){const u=U[k];if(u.inv)return v>=u.critico?'riesgo':v>=u.alerta?'alerta':'normal';return v<=u.critico?'riesgo':v<=u.alerta?'alerta':'normal';}
+const EL={riesgo:'Riesgo alto',alerta:'Alerta media',normal:'Normal'};
+
+function promHasta(key,anio){
+  const idx=AÑOS.indexOf(anio);
+  const arr=idx<0?BASE_SERIES[key]:BASE_SERIES[key].slice(0,idx+1);
+  return +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2);
+}
+function calcProm(key){
+  return +(SERIES[key].reduce((a,b)=>a+b,0)/SERIES[key].length).toFixed(2);
+}
+
+// LS
+function guardar(d,ti,tc){try{localStorage.setItem(LSKEY,JSON.stringify({datos:d,ti,tc,ts:Date.now(),exp:Date.now()+TTL}));}catch(e){}}
+function cargar(){
+  try{
+    const r=localStorage.getItem(LSKEY); if(!r)return null;
+    const p=JSON.parse(r);
+    if(Date.now()>p.exp){unificar(p.datos);localStorage.removeItem(LSKEY);return null;}
+    return p;
+  }catch(e){return null;}
+}
+function unificar(d){
+  const idx=AÑOS.indexOf(d.anio);
+  if(idx>=0){['informal','cotizantes','gasto','cobertura','ahorro'].forEach(k=>{if(d[k]!==undefined)BASE_SERIES[k][idx]=d[k];});}
+}
+function limpiarLS(){try{localStorage.removeItem(LSKEY);}catch(e){}}
+
+function tiempoRestante(exp){
+  const diff=exp-Date.now(); if(diff<=0)return 'expirado';
+  const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);
+  return h>0?h+'h '+m+'min restantes':m+' min restantes';
+}
+
+// Trimestre visible solo al digitar
+function mostrarTrim(id,val){
+  const w=document.getElementById('trim-'+id+'-wrap');
+  if(val&&val.trim()!=='')w.classList.add('visible'); else w.classList.remove('visible');
+}
+
+// Modal
+function abrirModal(){
+  const anio=parseInt(document.getElementById('inp-anio').value)||2025;
+  const leer=(id,key)=>{const v=parseFloat(document.getElementById(id).value);return isNaN(v)?promHasta(key,anio):v;};
+  const prev={informal:leer('inp-informal','informal'),cotizantes:leer('inp-cotizantes','cotizantes'),
+    gasto:leer('inp-gasto','gasto'),cobertura:leer('inp-cobertura','cobertura'),ahorro:leer('inp-ahorro','ahorro'),anio};
+  const ti=document.getElementById('sel-trim-inf').value;
+  const tc=document.getElementById('sel-trim-cot').value;
+  const noms={informal:'Informalidad laboral',cotizantes:'Cotizantes/ocupados',gasto:'Gasto pensional/PIB',cobertura:'Cobertura pensional',ahorro:'Ahorro nacional/PIB'};
+  let rows='';
+  ['informal','cotizantes','gasto','cobertura','ahorro'].forEach(k=>{
+    const isU=!isNaN(parseFloat(document.getElementById('inp-'+k).value));
+    const ex=k==='informal'&&ti?' ('+ti+')':k==='cotizantes'&&tc?' ('+tc+')':'';
+    rows+=`<div class="resumen-row"><span>${noms[k]}${ex}</span><strong>${Number(prev[k]).toFixed(1)}% ${isU?'✏️':'(prom. hist.)'}</strong></div>`;
+  });
+  rows+=`<div class="resumen-row"><span>Año consultado</span><strong>${anio}</strong></div>`;
+  document.getElementById('modal-resumen').innerHTML=rows;
+  document.getElementById('modal-overlay').classList.add('open');
+  window._pend={datos:prev,ti,tc};
+}
+function cerrarModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function confirmarCalculo(){
+  cerrarModal();
+  datos=window._pend.datos;
+  const idx=AÑOS.indexOf(datos.anio);
+  if(idx>=0){['informal','cotizantes','gasto','cobertura','ahorro'].forEach(k=>{SERIES[k][idx]=datos[k];});}
+  guardar(datos,window._pend.ti,window._pend.tc);
+  actualizarPanelActivo();
+  renderAll();
+}
+
+// Dos tipos de restablecer
+// 1. Rápido (junto al botón Consultar): limpia campos y vuelve a datos base SIN tocar el historial guardado
+function resetearRapido(){
+  SERIES=JSON.parse(JSON.stringify(BASE_SERIES));
+  datos={...BASE_DATOS};
+  limpiarCampos();
+  // Si había datos guardados, recargarlos automáticamente para no perder el registro
+  const p=cargar();
+  if(p){datos=p.datos;aplicarSeries(datos);}
+  actualizarPanelActivo();
+  renderAll();
+}
+// 2. Completo (en panel activo): elimina definitivamente el historial guardado
+function resetearConHistorial(){
+  SERIES=JSON.parse(JSON.stringify(BASE_SERIES));
+  datos={...BASE_DATOS};
+  limpiarLS();
+  limpiarCampos();
+  document.getElementById('active-panel').classList.remove('show');
+  renderAll();
+}
+function limpiarCampos(){
+  ['inp-informal','inp-cotizantes','inp-gasto','inp-cobertura','inp-ahorro','inp-anio'].forEach(id=>document.getElementById(id).value='');
+  ['inf','cot'].forEach(id=>{document.getElementById('trim-'+id+'-wrap').classList.remove('visible');document.getElementById('sel-trim-'+id).value='';});
+}
+function aplicarSeries(d){
+  const idx=AÑOS.indexOf(d.anio);
+  if(idx>=0){['informal','cotizantes','gasto','cobertura','ahorro'].forEach(k=>{SERIES[k][idx]=d[k];});}
+}
+
+function actualizarPanelActivo(){
+  const p=cargar();
+  const panel=document.getElementById('active-panel');
+  if(!p){panel.classList.remove('show');return;}
+  panel.classList.add('show');
+  const ti=p.ti?'Informalidad '+p.ti+' · ':'';
+  const tc=p.tc?'Cotizantes '+p.tc+' · ':'';
+  document.getElementById('active-desc').innerHTML=
+    'El tablero está mostrando los datos del año <strong>'+p.datos.anio+'</strong> que usted ingresó ('+ti+tc+'actualizado el '+new Date(p.ts).toLocaleDateString('es-CO', {day:'2-digit',month:'long',year:'numeric'})+'). '+
+    'El botón <strong>"Restablecer"</strong> que aparece junto a <em>Consultar</em> devuelve los campos de ingreso a su estado vacío pero <em>mantiene el registro guardado</em>. '+
+    'Este botón de abajo, <strong>"Restablecer datos base"</strong>, elimina definitivamente el registro y vuelve al histórico oficial 2015-2025. '+
+    'Si no presiona ninguno en 72 horas, el dato se incorporará permanentemente al histórico del tablero.';
+  document.getElementById('exp-tag').textContent='⏱ '+tiempoRestante(p.exp);
+}
+
+// Métricas
+function renderMetrics(){
+  const anio=datos.anio||2025;
+  const p=cargar();
+  const tl=(p&&p.ti?' · '+p.ti:'')+(p&&p.tc?' · '+p.tc:'');
+  document.getElementById('slabel-ind').textContent='Indicadores · '+anio+tl;
+  document.getElementById('abadge-wrap').innerHTML='<div class="abadge">📅 Año consultado: '+anio+tl+'</div>';
+  const keys=['informal','cotizantes','gasto','cobertura','ahorro'];
+  document.getElementById('mgrid').innerHTML=keys.map(k=>{
+    const u=U[k],v=datos[k],e=est(k,v);
+    return '<div class="mcard '+e+'"><div class="mlabel">'+u.label+'</div>'+
+      '<div class="mvalue">'+Number(v).toFixed(1)+'<span class="munit">'+u.unit+'</span></div>'+
+      '<div><span class="mbadge '+e+'">'+EL[e]+'</span></div>'+
+      '<div class="mumb"><strong>'+u.org+'</strong><br>Riesgo alto: '+u.ur+'<br>Alerta media: '+u.ua+'<br>Normal: '+u.un+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+// Pronóstico
+function renderPronostico(){
+  const {gasto:g,informal:inf,cotizantes:cot,cobertura:cob,ahorro:ah,anio}=datos;
+  const phi=0.9988,C=0.0002;
+  const gB=+(g*phi+C).toFixed(2);
+  const gBj=+(g*1.43).toFixed(2);
+  const gR=+(g*0.86).toFixed(2);
+  let al=[];
+  if(inf>50)al.push('alta informalidad laboral');
+  if(cot<45)al.push('baja base de cotizantes');
+  if(cob<40)al.push('cobertura pensional insuficiente');
+  if(g>4.0) al.push('presión fiscal elevada');
+  if(ah<8)  al.push('ahorro nacional bajo el umbral crítico OCDE');
+  const niv=al.length>=4?'alto':al.length>=2?'moderado':'bajo';
+  const desc=al.length>0
+    ?'Con los datos de '+anio+', el sistema pensional presenta nivel de riesgo <strong>'+niv+'</strong>. Señales identificadas: '+al.join(', ')+'. El modelo ARIMA proyecta un gasto de <strong>'+gB+'% del PIB</strong> en el corto plazo. Sin reformas, el escenario de bajo crecimiento podría alcanzar <strong>'+gBj+'% del PIB hacia 2055</strong>, superando el umbral crítico OCDE de 4.5%.'
+    :'Con los datos de '+anio+', el sistema presenta nivel de riesgo <strong>bajo</strong>. Los indicadores están dentro de rangos aceptables. El modelo ARIMA proyecta estabilidad en torno al <strong>'+gB+'% del PIB</strong>.';
+  document.getElementById('ppanel').innerHTML=
+    '<div class="ptitle">Pronóstico ARIMA (1,1,1) — Φ₁ ≈ 0.9988 · C = 0.0002</div>'+
+    '<div class="ptext">'+desc+'</div>'+
+    '<div class="scgrid">'+
+      '<div class="sccard"><div class="sclabel">Escenario base</div><div class="scval">'+gB+'%</div><div class="scdesc">del PIB · crecimiento 3.3%, reglas vigentes</div></div>'+
+      '<div class="sccard"><div class="sclabel">Bajo crecimiento</div><div class="scval">'+gBj+'%</div><div class="scdesc">del PIB · shocks demográficos, informalidad persistente hacia 2055</div></div>'+
+      '<div class="sccard"><div class="sclabel">Reforma efectiva</div><div class="scval">'+gR+'%</div><div class="scdesc">del PIB · formalización 58%, ahorro sostenido hacia 2055</div></div>'+
+    '</div>';
+}
+
+// Escenarios calculados dinámicamente
+function calcEsc(tipo){
+  const g=datos.gasto;
+  return [0,1,2,3,4,5,6].map((i)=>{
+    if(i===0)return g;
+    if(tipo==='base') return +(g+(i*0.00055*5)).toFixed(2);
+    if(tipo==='bajo') return +(g+(g*0.43/6)*i).toFixed(2);
+    return +(g-(g*0.14/6)*i*2.3).toFixed(2);
+  });
+}
+
+// Gráficas
+let CH={};
+const bO={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+    backgroundColor:'#1A3A5C',titleColor:'#C8A84B',bodyColor:'#fff',padding:10,cornerRadius:6}},
+  scales:{
+    x:{grid:{color:'#EEEEEE'},ticks:{maxRotation:45,autoSkip:false,font:{size:9},color:'#5A6472'}},
+    y:{grid:{color:'#EEEEEE'},ticks:{font:{size:10},color:'#5A6472'}}
+  }
+};
+
+function initCharts(){
+  CH.informal=new Chart(document.getElementById('c-informal'),{type:'line',data:{labels:LABELS,datasets:[
+    {label:'Informalidad (%)',data:[...SERIES.informal],borderColor:'#B71C1C',backgroundColor:'rgba(183,28,28,0.07)',fill:true,pointRadius:4,pointBackgroundColor:'#B71C1C',tension:0.3,borderWidth:2.5},
+    {label:'Cotizantes/Ocup. (%)',data:[...SERIES.cotizantes],borderColor:'#2E75B6',backgroundColor:'transparent',borderDash:[6,4],pointRadius:4,pointBackgroundColor:'#2E75B6',tension:0.3,borderWidth:2},
+    {label:'Umbral CEPAL 50%',data:Array(11).fill(50),borderColor:'#C65E00',borderDash:[4,4],pointRadius:0,borderWidth:1.8,backgroundColor:'transparent'}
+  ]},options:{...bO,scales:{...bO.scales,y:{...bO.scales.y,min:25,max:70,ticks:{callback:v=>v+'%',font:{size:10},color:'#5A6472'}}}}});
+
+  CH.gasto=new Chart(document.getElementById('c-gasto'),{type:'bar',data:{labels:LABELS,datasets:[
+    {label:'Gasto/PIB (%)',data:[...SERIES.gasto],backgroundColor:'#1A3A5C',borderRadius:5,order:2},
+    {label:'Riesgo OCDE 4.5%',data:Array(11).fill(4.5),type:'line',borderColor:'#B71C1C',borderDash:[6,4],pointRadius:0,borderWidth:2,backgroundColor:'transparent',order:1},
+    {label:'Alerta OCDE 4.0%',data:Array(11).fill(4.0),type:'line',borderColor:'#C65E00',borderDash:[3,3],pointRadius:0,borderWidth:1.5,backgroundColor:'transparent',order:1},
+    {label:'Promedio',data:Array(11).fill(calcProm('gasto')),type:'line',borderColor:'#C8A84B',borderDash:[2,2],pointRadius:0,borderWidth:1.5,backgroundColor:'transparent',order:1}
+  ]},options:{...bO,scales:{...bO.scales,y:{...bO.scales.y,min:2.5,max:5.5,ticks:{callback:v=>v.toFixed(1)+'%',font:{size:10},color:'#5A6472'}}}}});
+
+  const cobT=SERIES.cobertura.map((v,i)=>v+COB_MAYOR[i]);
+  CH.cobertura=new Chart(document.getElementById('c-cobertura'),{type:'line',data:{labels:LABELS,datasets:[
+    {label:'Cobertura total',data:cobT,borderColor:'#2E75B6',backgroundColor:'rgba(173,214,241,0.35)',fill:'+1',pointRadius:5,pointBackgroundColor:'#2E75B6',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:0.3,borderWidth:2.5,order:2},
+    {label:'Cobertura contributiva (%)',data:[...SERIES.cobertura],borderColor:'#1A3A5C',backgroundColor:'rgba(26,58,92,0.08)',fill:false,pointRadius:5,pointBackgroundColor:'#1A3A5C',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:0.3,borderWidth:2.5,borderDash:[6,4],order:3},
+    {label:'Umbral CEPAL 40%',data:Array(11).fill(40),borderColor:'#B71C1C',borderDash:[8,5],pointRadius:0,borderWidth:2,backgroundColor:'transparent',order:1}
+  ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,position:'bottom',labels:{font:{size:10},color:'#5A6472',boxWidth:28,padding:10}}},
+    scales:{...bO.scales,y:{...bO.scales.y,min:0,max:80,ticks:{callback:v=>v+'%',font:{size:10},color:'#5A6472',stepSize:10}}}}});
+
+  CH.ahorro=new Chart(document.getElementById('c-ahorro'),{type:'bar',data:{labels:LABELS,datasets:[
+    {label:'Ahorro/PIB (%)',data:[...SERIES.ahorro],backgroundColor:'#1A3A5C',borderRadius:5,order:2},
+    {label:'Riesgo OCDE <8%',data:Array(11).fill(8),type:'line',borderColor:'#B71C1C',borderDash:[8,5],pointRadius:0,borderWidth:2.5,backgroundColor:'transparent',order:1},
+    {label:'Alerta OCDE 9%',data:Array(11).fill(9),type:'line',borderColor:'#C65E00',borderDash:[4,3],pointRadius:0,borderWidth:1.8,backgroundColor:'transparent',order:1},
+    {label:'Promedio',data:Array(11).fill(calcProm('ahorro')),type:'line',borderColor:'#C8A84B',borderDash:[4,4],pointRadius:0,borderWidth:2,backgroundColor:'transparent',order:1}
+  ]},options:{...bO,plugins:{...bO.plugins,legend:{display:false}},
+    scales:{...bO.scales,x:{...bO.scales.x,ticks:{font:{size:10},color:'#5A6472',maxRotation:0}},
+      y:{...bO.scales.y,min:0,max:22,ticks:{callback:v=>v+'%',font:{size:10},color:'#5A6472',stepSize:5}}}},
+    plugins:[{id:'bL',afterDatasetsDraw(c){
+      const {ctx}=c,m=c.getDatasetMeta(0),d=SERIES.ahorro;
+      m.data.forEach((bar,i)=>{ctx.save();ctx.fillStyle='#1A3A5C';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText(d[i].toFixed(1)+'%',bar.x,bar.y-5);ctx.restore();});
+    }}]});
+
+  CH.escenarios=new Chart(document.getElementById('c-escenarios'),{type:'line',
+    data:{labels:['2025','2030','2035','2040','2045','2050','2055'],datasets:[
+      {label:'Escenario base (%)',data:calcEsc('base'),borderColor:'#1A3A5C',backgroundColor:'rgba(26,58,92,0.07)',fill:true,pointRadius:4,pointBackgroundColor:'#1A3A5C',tension:0.3,borderWidth:2.5},
+      {label:'Bajo crecimiento (%)',data:calcEsc('bajo'),borderColor:'#B71C1C',backgroundColor:'rgba(183,28,28,0.06)',fill:true,borderDash:[7,4],pointRadius:4,pointBackgroundColor:'#B71C1C',tension:0.3,borderWidth:2.5},
+      {label:'Reforma efectiva (%)',data:calcEsc('reforma'),borderColor:'#1B5E20',backgroundColor:'transparent',borderDash:[3,4],pointRadius:4,pointBackgroundColor:'#1B5E20',tension:0.3,borderWidth:2},
+      {label:'Umbral OCDE 4.5%',data:Array(7).fill(4.5),borderColor:'#C65E00',borderDash:[4,4],pointRadius:0,borderWidth:1.5,backgroundColor:'transparent'}
+    ]},options:{...bO,scales:{...bO.scales,y:{...bO.scales.y,ticks:{callback:v=>v.toFixed(1)+'%',font:{size:10},color:'#5A6472'}}}}});
+}
+
+function updateCharts(){
+  CH.informal.data.datasets[0].data=[...SERIES.informal];
+  CH.informal.data.datasets[1].data=[...SERIES.cotizantes]; CH.informal.update();
+  CH.gasto.data.datasets[0].data=[...SERIES.gasto];
+  CH.gasto.data.datasets[3].data=Array(11).fill(calcProm('gasto')); CH.gasto.update();
+  const cobT=SERIES.cobertura.map((v,i)=>v+COB_MAYOR[i]);
+  CH.cobertura.data.datasets[0].data=cobT;
+  CH.cobertura.data.datasets[1].data=[...SERIES.cobertura]; CH.cobertura.update();
+  CH.ahorro.data.datasets[0].data=[...SERIES.ahorro];
+  CH.ahorro.data.datasets[3].data=Array(11).fill(calcProm('ahorro')); CH.ahorro.update();
+  CH.escenarios.data.datasets[0].data=calcEsc('base');
+  CH.escenarios.data.datasets[1].data=calcEsc('bajo');
+  CH.escenarios.data.datasets[2].data=calcEsc('reforma'); CH.escenarios.update();
+}
+
+function renderAll(){renderMetrics();renderPronostico();if(CH.informal)updateCharts();}
+
+// INIT
+(function(){
+  const p=cargar();
+  if(p){datos=p.datos;aplicarSeries(datos);}
+  renderMetrics();renderPronostico();
+  actualizarPanelActivo();
+  setInterval(()=>actualizarPanelActivo(),60000);
+})();
+window.addEventListener('load',initCharts);
+</script>
+</body>
+</html>
